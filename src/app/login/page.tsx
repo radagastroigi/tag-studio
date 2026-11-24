@@ -1,57 +1,52 @@
-﻿'use client';
+﻿"use client";
 
-import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const supabase = createClient();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function signInWithGoogle() {
+  async function handleGoogleLogin() {
+    setLoading(true);
+    setError(null);
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
-    if (error) setMessage(error.message);
-  }
-
-  async function sendMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    });
-    setMessage(error ? error.message : 'Magic link sent. Check your inbox.');
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Sign in to TAG Studio</h1>
-      <button
-        type="button"
-        onClick={signInWithGoogle}
-        className="w-full rounded bg-[#17211E] px-4 py-2 text-white"
-      >
-        Continue with Google
-      </button>
-      <form onSubmit={sendMagicLink} className="space-y-3">
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full rounded border px-3 py-2 bg-white"
-        />
+    <main className="min-h-screen bg-[#F6F7F5] text-[#17211E] flex items-center justify-center p-6">
+      <div className="w-full max-w-sm bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-6">
+        <div className="w-12 h-12 mx-auto rounded-2xl bg-[#17211E] text-white flex items-center justify-center font-bold text-sm tracking-tight">
+          M
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold tracking-tight">Monkthetics</h1>
+          <p className="text-sm text-[#5B6863] leading-relaxed">
+            What you do in a day makes you who you are. One goal. One step at a time.
+          </p>
+        </div>
+
+        {error && (
+          <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5">{error}</p>
+        )}
+
         <button
-          type="submit"
-          className="w-full rounded border border-[#17211E] px-4 py-2"
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full py-3 rounded-xl bg-[#17211E] hover:bg-[#256453] disabled:opacity-50 text-white text-sm font-medium transition"
         >
-          Send Magic Link
+          {loading ? "Connecting…" : "Continue with Google"}
         </button>
-      </form>
-      {message && <p className="text-sm">{message}</p>}
+      </div>
     </main>
   );
 }
