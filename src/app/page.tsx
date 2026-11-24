@@ -1,5 +1,5 @@
-import { TagApp } from "@/components/TagApp";
+import { GoalExecutionStudio } from "@/components/GoalExecutionStudio";
 
 export default function HomePage() {
-  return <TagApp />;
+  return <GoalExecutionStudio />;
 }
