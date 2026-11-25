@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { GoalPlanner } from "@/components/GoalPlanner";
-import { NowFocusView } from "@/components/NowFocusView";
+import { NowFocusView, type HabitRow, type CheckinRow } from "@/components/NowFocusView";
 
 export default async function HomePage() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
   const todayIso = new Date().toISOString().slice(0, 10);
 
   const { data: goals } = await supabase
@@ -20,16 +19,16 @@ export default async function HomePage() {
   const { data: habits } = activeGoal
     ? await supabase
         .from("monk_habits")
-        .select("id, title, target_label, scheduled_time")
+        .select("id, title, target_label, scheduled_time, time_slot, tracking_type, unit_code, daily_target_value")
         .eq("goal_id", activeGoal.id)
         .eq("is_active", true)
-        .order("scheduled_time", { ascending: true })
+        .order("sort_order", { ascending: true })
     : { data: [] };
 
   const { data: checkins } = activeGoal
     ? await supabase
         .from("monk_checkins")
-        .select("habit_id, status, duration_mins")
+        .select("habit_id, status, actual_value")
         .eq("checkin_date", todayIso)
     : { data: [] };
 
@@ -39,14 +38,13 @@ export default async function HomePage() {
         <span className="font-semibold text-[#17211E]">Monkthetics</span>
         <div className="flex items-center gap-4">
           {activeGoal && (
-            <Link href="/reflect" className="hover:text-[#17211E] font-medium">
-              Weekly Reflect
-            </Link>
+            <>
+              <Link href="/progress" className="hover:text-[#17211E] font-medium">Progress</Link>
+              <Link href="/reflect" className="hover:text-[#17211E] font-medium">Reflect</Link>
+            </>
           )}
           <form action="/auth/signout" method="post">
-            <button type="submit" className="underline hover:text-[#17211E]">
-              Sign out
-            </button>
+            <button type="submit" className="underline hover:text-[#17211E]">Sign out</button>
           </form>
         </div>
       </div>
@@ -57,8 +55,8 @@ export default async function HomePage() {
         <NowFocusView
           goalTitle={activeGoal.title}
           todayIso={todayIso}
-          habits={habits}
-          initialCheckins={(checkins || []) as { habit_id: string; status: "done" | "partly" | "skipped"; duration_mins: number }[]}
+          habits={habits as HabitRow[]}
+          initialCheckins={(checkins || []) as CheckinRow[]}
         />
       )}
     </main>

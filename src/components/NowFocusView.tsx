@@ -2,18 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatSIValue, TIME_SLOT_LABELS, type TimeSlot, type TrackingType } from "@/lib/units";
 
 export type HabitRow = {
   id: string;
   title: string;
   target_label: string;
-  scheduled_time: string;
+  scheduled_time: string | null;
+  time_slot: TimeSlot;
+  tracking_type: TrackingType;
+  unit_code: string;
+  daily_target_value: number;
 };
 
 export type CheckinRow = {
   habit_id: string;
   status: "done" | "partly" | "skipped";
-  duration_mins: number;
+  actual_value: number;
 };
 
 interface NowFocusViewProps {
@@ -23,12 +28,7 @@ interface NowFocusViewProps {
   initialCheckins: CheckinRow[];
 }
 
-export function NowFocusView({
-  goalTitle,
-  todayIso,
-  habits,
-  initialCheckins,
-}: NowFocusViewProps) {
+export function NowFocusView({ goalTitle, todayIso, habits, initialCheckins }: NowFocusViewProps) {
   const [checkins, setCheckins] = useState<Record<string, CheckinRow>>(() => {
     const map: Record<string, CheckinRow> = {};
     for (const c of initialCheckins) map[c.habit_id] = c;
@@ -37,14 +37,13 @@ export function NowFocusView({
 
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedSecs, setElapsedSecs] = useState(0);
+  const [manualInput, setManualInput] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSchedule, setShowSchedule] = useState(false);
 
-  // Pick the first habit not yet checked in today
-  const pendingHabits = habits.filter((h) => !checkins[h.id]);
-  const currentHabit = pendingHabits[0] ?? null;
-  const completedCount = habits.length - pendingHabits.length;
+  const pending = habits.filter((h) => !checkins[h.id]);
+  const current = pending[0] ?? null;
+  const completedCount = habits.length - pending.length;
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -52,14 +51,14 @@ export function NowFocusView({
     return () => clearInterval(id);
   }, [timerRunning]);
 
-  // Reset timer whenever active habit changes
   useEffect(() => {
     setTimerRunning(false);
     setElapsedSecs(0);
-  }, [currentHabit?.id]);
+    setManualInput("");
+  }, [current?.id]);
 
   async function recordCheckin(status: "done" | "partly" | "skipped") {
-    if (!currentHabit) return;
+    if (!current) return;
     setSaving(true);
     setError(null);
     setTimerRunning(false);
@@ -71,15 +70,39 @@ export function NowFocusView({
       return setError("Session expired. Please sign in again.");
     }
 
-    const durationMins = elapsedSecs >= 30 ? Math.max(1, Math.round(elapsedSecs / 60)) : 0;
+    // Compute canonical SI actual_value
+    let actualSI = 0;
+    if (status !== "skipped") {
+      if (current.tracking_type === "time") {
+        if (manualInput.trim() && Number(manualInput) > 0) {
+          actualSI = Math.round(Number(manualInput) * 60); // manual mins -> seconds
+        } else if (elapsedSecs > 0) {
+          actualSI = elapsedSecs;
+        } else {
+          actualSI = status === "done" ? current.daily_target_value : Math.round(current.daily_target_value * 0.5);
+        }
+      } else if (current.tracking_type === "count") {
+        if (manualInput.trim() && Number(manualInput) >= 0) {
+          actualSI = Number(manualInput);
+        } else {
+          actualSI = status === "done" ? current.daily_target_value : Math.max(1, Math.round(current.daily_target_value * 0.5));
+        }
+      } else {
+        actualSI = status === "done" ? 1 : 0.5;
+      }
+    }
+
+    const durationMins = current.unit_code === "s" ? Math.round(actualSI / 60) : 0;
 
     const { error: dbErr } = await supabase.from("monk_checkins").upsert(
       {
         user_id: user.id,
-        habit_id: currentHabit.id,
+        habit_id: current.id,
         checkin_date: todayIso,
         status,
         duration_mins: durationMins,
+        actual_value: actualSI,
+        target_value_snapshot: current.daily_target_value,
       },
       { onConflict: "habit_id,checkin_date" }
     );
@@ -91,164 +114,113 @@ export function NowFocusView({
 
     setCheckins((prev) => ({
       ...prev,
-      [currentHabit.id]: {
-        habit_id: currentHabit.id,
-        status,
-        duration_mins: durationMins,
-      },
+      [current.id]: { habit_id: current.id, status, actual_value: actualSI },
     }));
     setSaving(false);
   }
 
-  const mm = String(Math.floor(elapsedSecs / 60)).padStart(2, "0");
-  const ss = String(elapsedSecs % 60).padStart(2, "0");
-
-  // All habits for today handled -> Serene completion state
-  if (!currentHabit) {
-    const showedUpCount = Object.values(checkins).filter(
-      (c) => c.status === "done" || c.status === "partly"
-    ).length;
-
+  if (!current) {
+    const showedUp = Object.values(checkins).filter((c) => c.status !== "skipped").length;
     return (
-      <div className="w-full max-w-md bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-6">
-        <div className="w-12 h-12 mx-auto rounded-full bg-[#E8F2EE] text-[#256453] flex items-center justify-center text-lg font-semibold">
-          ✓
-        </div>
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-[#256453]">Today is complete</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#17211E]">
-            You showed up for {showedUpCount} of {habits.length} commitments.
-          </h1>
-          <p className="text-sm text-[#5B6863] leading-relaxed">
-            No need to overthink progress. Rest well—tomorrow is another clean day toward{" "}
-            <span className="text-[#17211E] font-medium">{goalTitle}</span>.
-          </p>
-        </div>
-
-        <div className="pt-4 border-t border-[#EDF1EE] space-y-2 text-left">
-          {habits.map((h) => {
-            const c = checkins[h.id];
-            const label =
-              c?.status === "done" ? "Done" : c?.status === "partly" ? "Partly done" : "Skipped";
-            return (
-              <div key={h.id} className="flex items-center justify-between text-xs py-1">
-                <span className="text-[#17211E]">{h.title}</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full font-medium ${
-                    c?.status === "skipped"
-                      ? "bg-[#F0F2F1] text-[#5B6863]"
-                      : "bg-[#E8F2EE] text-[#256453]"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+      <div className="w-full max-w-md bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-5">
+        <div className="w-12 h-12 mx-auto rounded-full bg-[#E8F2EE] text-[#256453] flex items-center justify-center text-lg font-semibold">✓</div>
+        <h1 className="text-xl font-semibold">You showed up for {showedUp} of {habits.length} today.</h1>
+        <p className="text-sm text-[#5B6863]">Rest easy. Consistency compounds quietly toward {goalTitle}.</p>
       </div>
     );
   }
 
+  const slotLabel = current.scheduled_time
+    ? current.scheduled_time.slice(0, 5)
+    : TIME_SLOT_LABELS[current.time_slot || "anytime"];
+  const mm = String(Math.floor(elapsedSecs / 60)).padStart(2, "0");
+  const ss = String(elapsedSecs % 60).padStart(2, "0");
+
   return (
-    <div className="w-full max-w-md space-y-4">
-      <div className="bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-7">
-        {/* Quiet Step Context */}
-        <div className="space-y-1">
-          <div className="text-xs font-mono text-[#5B6863]">
-            Step {completedCount + 1} of {habits.length} · {currentHabit.scheduled_time.slice(0, 5)}
-          </div>
-          <div className="text-xs text-[#256453] font-medium">{goalTitle}</div>
+    <div className="w-full max-w-md bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-6">
+      <div className="space-y-1">
+        <div className="text-xs font-mono text-[#5B6863]">
+          Step {completedCount + 1} of {habits.length} · {slotLabel}
         </div>
+        <div className="text-xs text-[#256453] font-medium">{goalTitle}</div>
+      </div>
 
-        {/* Single Activity Focus */}
-        <div className="space-y-2 py-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#17211E] leading-snug">
-            {currentHabit.title}
-          </h1>
-          <p className="text-sm text-[#5B6863]">Commitment: {currentHabit.target_label}</p>
-        </div>
+      <div className="space-y-1.5 py-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#17211E]">{current.title}</h1>
+        <p className="text-sm text-[#5B6863]">
+          Target: {formatSIValue(current.daily_target_value, current.unit_code, current.tracking_type)}
+        </p>
+      </div>
 
-        {/* Optional Calm Timer */}
-        <div className="flex flex-col items-center gap-2">
-          {elapsedSecs > 0 || timerRunning ? (
+      {/* Adaptive Input: Timer + Manual Mins OR Count Input */}
+      {current.tracking_type === "time" && (
+        <div className="space-y-3">
+          {(elapsedSecs > 0 || timerRunning) && (
             <div className="font-mono text-2xl font-semibold text-[#17211E]">{mm}:{ss}</div>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setTimerRunning((r) => !r)}
-            className="px-4 py-1.5 rounded-full bg-[#F2F5F3] hover:bg-[#E8F2EE] text-xs font-medium text-[#256453] transition"
-          >
-            {timerRunning ? "Pause timer" : elapsedSecs > 0 ? "Resume timer" : "Start quiet timer"}
-          </button>
-        </div>
-
-        {error && (
-          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5">
-            {error}
+          )}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTimerRunning((r) => !r)}
+              className="px-4 py-2 rounded-full bg-[#F2F5F3] hover:bg-[#E8F2EE] text-xs font-medium text-[#256453]"
+            >
+              {timerRunning ? "Pause timer" : elapsedSecs > 0 ? "Resume timer" : "Start quiet timer"}
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={600}
+              value={manualInput}
+              onChange={(e) => setManualInput(e.target.value)}
+              placeholder="or mins"
+              className="w-24 px-3 py-1.5 text-xs text-center rounded-full border border-[#D8DFDB]"
+            />
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Three Honest Check-In Actions */}
-        <div className="space-y-2.5 pt-2">
+      {current.tracking_type === "count" && (
+        <div className="flex items-center justify-center gap-2">
+          <input
+            type="number"
+            min={0}
+            value={manualInput}
+            onChange={(e) => setManualInput(e.target.value)}
+            placeholder={`Enter ${current.unit_code}`}
+            className="w-36 px-3.5 py-2 text-xs text-center rounded-xl border border-[#D8DFDB]"
+          />
+        </div>
+      )}
+
+      {error && <div className="text-xs text-red-700 bg-red-50 rounded-xl p-2.5">{error}</div>}
+
+      <div className="space-y-2.5 pt-2">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => recordCheckin("done")}
+          className="w-full py-3.5 rounded-2xl bg-[#17211E] hover:bg-[#256453] text-white text-sm font-semibold transition"
+        >
+          {saving ? "Saving…" : "Showed Up — Done"}
+        </button>
+        <div className="grid grid-cols-2 gap-2.5">
           <button
             type="button"
             disabled={saving}
-            onClick={() => recordCheckin("done")}
-            className="w-full py-3.5 rounded-2xl bg-[#17211E] hover:bg-[#256453] text-white text-sm font-semibold transition disabled:opacity-50"
+            onClick={() => recordCheckin("partly")}
+            className="py-2.5 rounded-xl bg-[#E8F2EE] text-[#256453] text-xs font-semibold"
           >
-            {saving ? "Saving…" : "Showed Up — Done"}
+            Partly Done
           </button>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => recordCheckin("partly")}
-              className="py-2.5 rounded-xl bg-[#E8F2EE] hover:bg-[#D8EAE3] text-[#256453] text-xs font-semibold transition disabled:opacity-50"
-            >
-              Partly Done
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => recordCheckin("skipped")}
-              className="py-2.5 rounded-xl border border-[#D8DFDB] hover:bg-[#F4F6F5] text-[#5B6863] text-xs font-medium transition disabled:opacity-50"
-            >
-              Not Today
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => recordCheckin("skipped")}
+            className="py-2.5 rounded-xl border border-[#D8DFDB] text-[#5B6863] text-xs font-medium"
+          >
+            Not Today
+          </button>
         </div>
-      </div>
-
-      {/* Collapsible Peek at Today's Rhythm (Hidden by default to prevent distraction) */}
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={() => setShowSchedule((s) => !s)}
-          className="text-xs text-[#5B6863] hover:text-[#17211E] underline"
-        >
-          {showSchedule ? "Hide today's rhythm" : `Peek at today's rhythm (${habits.length} steps)`}
-        </button>
-
-        {showSchedule && (
-          <div className="mt-3 bg-white border border-[#E2E7E4] rounded-2xl p-4 text-left divide-y divide-[#EDF1EE]">
-            {habits.map((h) => {
-              const c = checkins[h.id];
-              return (
-                <div key={h.id} className="py-2 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-mono text-[#5B6863] mr-2.5">{h.scheduled_time.slice(0, 5)}</span>
-                    <span className={c ? "line-through text-[#87948F]" : "text-[#17211E] font-medium"}>
-                      {h.title}
-                    </span>
-                  </div>
-                  <span className="text-[#5B6863]">{c ? c.status : h.target_label}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
