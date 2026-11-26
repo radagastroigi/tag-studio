@@ -1,15 +1,10 @@
-import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-type CookieToSet = {
-  name: string;
-  value: string;
-  options?: CookieOptions;
-};
+type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
-
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -24,7 +19,7 @@ export async function createServerSupabaseClient() {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // Ignored when called from a Server Component without mutable cookie response
+            // Safe in Server Components
           }
         },
       },

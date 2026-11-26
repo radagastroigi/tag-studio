@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TAG Studio — Task, Activity & Goal | Monkthetics",
-  description: "Production-grade Task, Activity, and Goal execution system.",
+  title: "Monkthetics â€” Daily Goal Execution",
+  description: "One long-term goal. One short-term goal. Quiet daily focus.",
   manifest: "/manifest.json",
 };
 

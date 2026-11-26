@@ -5,7 +5,6 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.redirect(new URL("/login", request.url), { status: 303 });
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,13 +21,10 @@ export async function POST(request: NextRequest) {
   );
 
   await supabase.auth.signOut();
-
-  // Belt-and-suspenders: expire any leftover Supabase auth cookies explicitly
   request.cookies.getAll().forEach((c) => {
     if (c.name.startsWith("sb-")) {
       response.cookies.set(c.name, "", { path: "/", maxAge: 0 });
     }
   });
-
   return response;
 }

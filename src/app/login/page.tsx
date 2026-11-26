@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -24,7 +24,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#F6F7F5] text-[#17211E] flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-6">
-        <div className="w-12 h-12 mx-auto rounded-2xl bg-[#17211E] text-white flex items-center justify-center font-bold text-sm tracking-tight">
+        <div className="w-12 h-12 mx-auto rounded-2xl bg-[#17211E] text-white flex items-center justify-center font-bold text-sm">
           M
         </div>
         <div className="space-y-2">
@@ -44,7 +44,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full py-3 rounded-xl bg-[#17211E] hover:bg-[#256453] disabled:opacity-50 text-white text-sm font-medium transition"
         >
-          {loading ? "Connecting…" : "Continue with Google"}
+          {loading ? "Connectingâ€¦" : "Continue with Google"}
         </button>
       </div>
     </main>

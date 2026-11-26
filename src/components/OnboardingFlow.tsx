@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -98,10 +98,10 @@ export function OnboardingFlow({ userEmail }: { userEmail: string }) {
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-xl bg-white border border-[#E2E7E4] rounded-3xl p-7 space-y-6">
       <div className="space-y-1">
-        <div className="text-xs font-medium text-[#256453]">Step 1 of 2 · Foundation</div>
+        <div className="text-xs font-medium text-[#256453]">Step 1 of 2 Â· Foundation</div>
         <h1 className="text-xl font-semibold tracking-tight">Define who you&apos;re becoming</h1>
         <p className="text-xs text-[#5B6863]">
-          Set 1 Long-Term Goal, 1 immediate Short-Term Goal, and your context so insights stay personal to your craft.
+          Set 1 Long-Term Goal, 1 immediate Short-Term Goal, and your context so insights stay personal.
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export function OnboardingFlow({ userEmail }: { userEmail: string }) {
       </div>
 
       <button type="submit" disabled={saving} className="w-full py-3 rounded-2xl bg-[#17211E] hover:bg-[#256453] text-white text-sm font-semibold transition disabled:opacity-50">
-        {saving ? "Saving…" : "Continue to Activities & Milestones →"}
+        {saving ? "Savingâ€¦" : "Continue to Activities & Milestones â†’"}
       </button>
     </form>
   );

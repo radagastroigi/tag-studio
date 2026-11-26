@@ -1,4 +1,4 @@
-﻿export interface MonkProfile {
+export interface MonkProfile {
   user_id: string;
   display_name: string;
   age: number | null;

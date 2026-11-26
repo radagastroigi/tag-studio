@@ -20,30 +20,17 @@ export function MilestoneChecklist({ initial }: { initial: Milestone[] }) {
       .eq("id", id);
   }
 
-  if (!items.length) {
-    return <p className="text-xs text-[#5B6863]">No checkpoints added yet.</p>;
-  }
+  if (!items.length) return <p className="text-xs text-[#5B6863]">No checkpoints added yet.</p>;
 
   return (
     <div className="divide-y divide-[#EDF1EE]">
       {items.map((m) => (
-        <button
-          key={m.id}
-          type="button"
-          onClick={() => toggle(m.id)}
-          className="w-full py-2.5 flex items-center justify-between gap-3 text-left text-xs"
-        >
+        <button key={m.id} type="button" onClick={() => toggle(m.id)} className="w-full py-2.5 flex items-center justify-between gap-3 text-left text-xs">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span
-              className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] ${
-                m.is_completed ? "bg-[#256453] border-[#256453] text-white" : "border-[#9AA8A2]"
-              }`}
-            >
-              {m.is_completed ? "✓" : ""}
+            <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] ${m.is_completed ? "bg-[#256453] border-[#256453] text-white" : "border-[#9AA8A2]"}`}>
+              {m.is_completed ? "âœ“" : ""}
             </span>
-            <span className={m.is_completed ? "line-through text-[#87948F]" : "text-[#17211E] font-medium"}>
-              {m.title}
-            </span>
+            <span className={m.is_completed ? "line-through text-[#87948F]" : "text-[#17211E] font-medium"}>{m.title}</span>
           </div>
           {m.due_date && <span className="font-mono text-[11px] text-[#5B6863] shrink-0">{m.due_date}</span>}
         </button>

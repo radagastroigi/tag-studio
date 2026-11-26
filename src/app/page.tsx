@@ -21,7 +21,7 @@ export default async function HomePage() {
   const todayIso = new Date().toISOString().slice(0, 10);
 
   const [gRes, aRes, sRes] = await Promise.all([
-    supabase.from("monk_core_goals").select("id, horizon, title, target_hours, target_date").eq("is_active", true),
+    supabase.from("monk_core_goals").select("id, horizon, title, why_statement, target_hours, target_date").eq("is_active", true),
     supabase.from("monk_activities").select("id, goal_id, title, scheduled_time, daily_target_mins").eq("is_active", true).order("scheduled_time", { ascending: true, nullsFirst: false }),
     supabase.from("monk_sessions").select("id, activity_id, session_date, started_at, ended_at, duration_mins, status").eq("session_date", todayIso),
   ]);

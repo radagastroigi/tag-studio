@@ -28,14 +28,11 @@ export function DailyWidget({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editMins, setEditMins] = useState<string>("");
+  const [editMins, setEditMins] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Pick a currently running activity first, otherwise the next unfinished one
   const runningAct = activities.find((a) => sessions[a.id]?.status === "running") ?? null;
-  const pendingActs = activities.filter(
-    (a) => !sessions[a.id] || sessions[a.id].status === "running"
-  );
+  const pendingActs = activities.filter((a) => !sessions[a.id] || sessions[a.id].status === "running");
   const activeAct = runningAct ?? pendingActs[0] ?? null;
   const activeSession = activeAct ? sessions[activeAct.id] : null;
   const isRunning = activeSession?.status === "running" && Boolean(activeSession.started_at);
@@ -165,12 +162,9 @@ export function DailyWidget({
 
   return (
     <div className="w-full max-w-md space-y-5">
-      {/* MAIN WIDGET CARD */}
       {!activeAct ? (
         <div className="bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-4">
-          <div className="w-12 h-12 mx-auto rounded-full bg-[#E8F2EE] text-[#256453] flex items-center justify-center text-lg font-semibold">
-            ✓
-          </div>
+          <div className="w-12 h-12 mx-auto rounded-full bg-[#E8F2EE] text-[#256453] flex items-center justify-center text-lg font-semibold">âœ“</div>
           <h1 className="text-xl font-semibold">Done for today, {displayName}.</h1>
           <p className="text-sm text-[#5B6863]">
             Total captured today: <strong>{totalTodayMins} min</strong> toward{" "}
@@ -181,14 +175,12 @@ export function DailyWidget({
         <div className="bg-white border border-[#E2E7E4] rounded-3xl p-8 text-center space-y-6">
           <div className="space-y-1">
             <div className="text-xs font-mono text-[#5B6863]">
-              {activeAct.scheduled_time ? activeAct.scheduled_time.slice(0, 5) : "Flexible"} · Target {activeAct.daily_target_mins}m
+              {activeAct.scheduled_time ? activeAct.scheduled_time.slice(0, 5) : "Flexible"} Â· Target {activeAct.daily_target_mins}m
             </div>
             <div className="text-xs font-medium text-[#256453]">{shortGoalTitle}</div>
           </div>
 
-          <h1 className="text-2xl font-semibold tracking-tight text-[#17211E] py-1">
-            {activeAct.title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#17211E] py-1">{activeAct.title}</h1>
 
           {isRunning && (
             <div className="space-y-1">
@@ -201,49 +193,24 @@ export function DailyWidget({
 
           {!isRunning ? (
             <div className="space-y-2.5 pt-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => startWork(activeAct)}
-                className="w-full py-3.5 rounded-2xl bg-[#17211E] hover:bg-[#256453] text-white text-sm font-semibold transition"
-              >
+              <button type="button" disabled={saving} onClick={() => startWork(activeAct)} className="w-full py-3.5 rounded-2xl bg-[#17211E] hover:bg-[#256453] text-white text-sm font-semibold transition">
                 Start Activity
               </button>
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => endWork(activeAct, "done")}
-                  className="py-2.5 rounded-xl bg-[#E8F2EE] text-[#256453] text-xs font-semibold"
-                >
+                <button type="button" disabled={saving} onClick={() => endWork(activeAct, "done")} className="py-2.5 rounded-xl bg-[#E8F2EE] text-[#256453] text-xs font-semibold">
                   Mark Done ({activeAct.daily_target_mins}m)
                 </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => endWork(activeAct, "skipped")}
-                  className="py-2.5 rounded-xl border border-[#D8DFDB] text-[#5B6863] text-xs font-medium"
-                >
+                <button type="button" disabled={saving} onClick={() => endWork(activeAct, "skipped")} className="py-2.5 rounded-xl border border-[#D8DFDB] text-[#5B6863] text-xs font-medium">
                   Skip Today
                 </button>
               </div>
             </div>
           ) : (
             <div className="space-y-2.5 pt-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => endWork(activeAct, "done")}
-                className="w-full py-3.5 rounded-2xl bg-[#256453] hover:bg-[#1C4D40] text-white text-sm font-semibold transition"
-              >
+              <button type="button" disabled={saving} onClick={() => endWork(activeAct, "done")} className="w-full py-3.5 rounded-2xl bg-[#256453] hover:bg-[#1C4D40] text-white text-sm font-semibold transition">
                 End &amp; Save as Done
               </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => endWork(activeAct, "partly")}
-                className="w-full py-2.5 rounded-xl bg-[#F2F5F3] text-[#17211E] text-xs font-semibold"
-              >
+              <button type="button" disabled={saving} onClick={() => endWork(activeAct, "partly")} className="w-full py-2.5 rounded-xl bg-[#F2F5F3] text-[#17211E] text-xs font-semibold">
                 End as Partly Done
               </button>
             </div>
@@ -251,7 +218,6 @@ export function DailyWidget({
         </div>
       )}
 
-      {/* EDIT TODAY'S HOURS / MINUTES ANYTIME */}
       <div className="bg-white border border-[#E2E7E4] rounded-2xl p-4 space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-[#17211E]">Today&apos;s Activities (Edit Time)</span>
@@ -267,27 +233,14 @@ export function DailyWidget({
                 <div className="min-w-0">
                   <div className="font-medium text-[#17211E] truncate">{a.title}</div>
                   <div className="text-[11px] text-[#5B6863]">
-                    {a.scheduled_time ? a.scheduled_time.slice(0, 5) : "Anytime"} · {s ? s.status : "pending"}
+                    {a.scheduled_time ? a.scheduled_time.slice(0, 5) : "Anytime"} Â· {s ? s.status : "pending"}
                   </div>
                 </div>
 
                 {isEditing ? (
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <input
-                      type="number"
-                      min={0}
-                      max={720}
-                      value={editMins}
-                      onChange={(e) => setEditMins(e.target.value)}
-                      className="w-16 px-2 py-1 text-xs text-center rounded-lg border border-[#D8DFDB]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => saveManualTime(a.id)}
-                      className="px-2.5 py-1 rounded-lg bg-[#17211E] text-white text-[11px] font-semibold"
-                    >
-                      Save
-                    </button>
+                    <input type="number" min={0} max={720} value={editMins} onChange={(e) => setEditMins(e.target.value)} className="w-16 px-2 py-1 text-xs text-center rounded-lg border border-[#D8DFDB]" />
+                    <button type="button" onClick={() => saveManualTime(a.id)} className="px-2.5 py-1 rounded-lg bg-[#17211E] text-white text-[11px] font-semibold">Save</button>
                   </div>
                 ) : (
                   <button
@@ -298,7 +251,7 @@ export function DailyWidget({
                     }}
                     className="font-mono px-2.5 py-1 rounded-lg bg-[#F4F6F5] hover:bg-[#E8F2EE] text-[#17211E] shrink-0"
                   >
-                    {s?.duration_mins ?? 0}m ✎
+                    {s?.duration_mins ?? 0}m âœŽ
                   </button>
                 )}
               </div>

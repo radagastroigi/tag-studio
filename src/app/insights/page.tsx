@@ -46,7 +46,6 @@ export default async function InsightsPage() {
 
   const totalHrs = sessions.reduce((s, r) => s + Number(r.duration_mins || 0), 0) / 60;
 
-  // Last 7 days
   const sevenDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -57,7 +56,6 @@ export default async function InsightsPage() {
   const weeklyPaceHrs = sevenDays.reduce((s, d) => s + d.mins, 0) / 60;
   const maxDayMins = Math.max(60, ...sevenDays.map((d) => d.mins));
 
-  // Working-style peak slot detection
   const slotMins: Record<string, number> = { Morning: 0, Afternoon: 0, Evening: 0, Flexible: 0 };
   for (const r of sessions) {
     const meta = Array.isArray(r.monk_activities) ? r.monk_activities[0] : r.monk_activities;
@@ -71,14 +69,13 @@ export default async function InsightsPage() {
     <main className="min-h-screen bg-[#F6F7F5] text-[#17211E] flex flex-col items-center p-6 pt-8 pb-16">
       <div className="w-full max-w-2xl space-y-5">
         <div className="flex items-center justify-between text-xs text-[#5B6863]">
-          <Link href="/" className="font-semibold text-[#17211E] hover:underline">← Back to Daily Widget</Link>
+          <Link href="/" className="font-semibold text-[#17211E] hover:underline">â† Back to Daily Widget</Link>
           <div className="flex items-center gap-4">
             <a href="/api/excel/export" className="font-semibold text-[#256453] hover:underline">Export .xlsx</a>
-            <Link href="/reflect" className="hover:text-[#17211E]">AI Reflection</Link>
+            <Link href="/onboarding" className="hover:text-[#17211E]">Reset Goals</Link>
           </div>
         </div>
 
-        {/* Goal Completion Predictions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {goals.map((g) => {
             const pred = predictGoal(g, totalHrs, weeklyPaceHrs);
@@ -88,11 +85,7 @@ export default async function InsightsPage() {
                   <span className="font-semibold uppercase tracking-wide text-[#5B6863]">
                     {g.horizon === "short_term" ? "Short-Term Goal" : "Long-Term Goal"}
                   </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full font-semibold ${
-                      pred.status === "Behind Pace" ? "bg-[#FCECEC] text-[#B43E3E]" : "bg-[#E8F2EE] text-[#256453]"
-                    }`}
-                  >
+                  <span className={`px-2 py-0.5 rounded-full font-semibold ${pred.status === "Behind Pace" ? "bg-[#FCECEC] text-[#B43E3E]" : "bg-[#E8F2EE] text-[#256453]"}`}>
                     {pred.status}
                   </span>
                 </div>
@@ -102,20 +95,19 @@ export default async function InsightsPage() {
                 </div>
                 <div className="text-xs text-[#36433E]">{pred.eta}</div>
                 <div className="text-[11px] text-[#5B6863]">
-                  Need {pred.requiredPerWeek.toFixed(1)}h/wk · Target date {g.target_date}
+                  Need {pred.requiredPerWeek.toFixed(1)}h/wk Â· Target date {g.target_date}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Weekly Productivity Bars + Working Style */}
         <div className="bg-white border border-[#E2E7E4] rounded-3xl p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold">This Week&apos;s Productivity ({weeklyPaceHrs.toFixed(1)} hrs)</h2>
               <p className="text-xs text-[#5B6863]">
-                Your strongest working window: <strong className="text-[#17211E]">{peakSlot}</strong>
+                Strongest working window: <strong className="text-[#17211E]">{peakSlot}</strong>
               </p>
             </div>
             <span className="font-mono text-xs px-2.5 py-1 rounded-full bg-[#E8F2EE] text-[#256453]">
@@ -128,10 +120,7 @@ export default async function InsightsPage() {
               <div key={d.iso} className="flex flex-col items-center gap-1.5 h-full justify-end">
                 <span className="text-[10px] font-mono text-[#5B6863]">{d.mins}m</span>
                 <div className="w-full max-w-[36px] h-24 bg-[#EDF1EE] rounded-lg overflow-hidden flex items-end">
-                  <div
-                    className="w-full bg-[#256453] rounded-lg"
-                    style={{ height: `${Math.max(4, Math.round((d.mins / maxDayMins) * 100))}%` }}
-                  />
+                  <div className="w-full bg-[#256453] rounded-lg" style={{ height: `${Math.max(4, Math.round((d.mins / maxDayMins) * 100))}%` }} />
                 </div>
                 <span className="text-[11px] text-[#5B6863]">{d.label}</span>
               </div>
@@ -139,7 +128,6 @@ export default async function InsightsPage() {
           </div>
         </div>
 
-        {/* Milestones & Checkpoints */}
         <div className="bg-white border border-[#E2E7E4] rounded-3xl p-6 space-y-3">
           <h2 className="text-sm font-semibold">Goal Milestones &amp; Checkpoints</h2>
           <MilestoneChecklist initial={milestones} />

@@ -1,4 +1,4 @@
-﻿import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 
 export default async function OnboardingPage() {
